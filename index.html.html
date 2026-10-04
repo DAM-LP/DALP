@@ -1,0 +1,581 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Panel DALP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;700&display=swap">
+<style>
+/* Layout: cabecera, cifras, alertas, dinero disponible + formulario de movimientos, tabla de movimientos, y tres columnas (agenda, correo, Drive). */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --ink: #14202b;
+  --muted: #5b6b79;
+  --line: #d8dfe6;
+  --accent: #1d4ed8;
+  --accent-ink: #ffffff;
+  --good: #0f7b4f;
+  --good-bg: #e2f4ec;
+  --warn: #8f5200;
+  --warn-bg: #fdf0d9;
+  --crit: #b42318;
+  --crit-bg: #fde8e5;
+  --info-bg: #e6edfb;
+  --field: #f7f9fb;
+  --font-body: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151b; --surface: #16202a; --ink: #e6ecf1; --muted: #8fa0af; --line: #26333f;
+    --accent: #7aa2ff; --accent-ink: #0e151b;
+    --good: #4cc38a; --good-bg: #12302a; --warn: #e5a23c; --warn-bg: #33270f;
+    --crit: #ff7a6b; --crit-bg: #3a1a17; --info-bg: #1a2742; --field: #0f1820;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151b; --surface: #16202a; --ink: #e6ecf1; --muted: #8fa0af; --line: #26333f;
+  --accent: #7aa2ff; --accent-ink: #0e151b;
+  --good: #4cc38a; --good-bg: #12302a; --warn: #e5a23c; --warn-bg: #33270f;
+  --crit: #ff7a6b; --crit-bg: #3a1a17; --info-bg: #1a2742; --field: #0f1820;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1120px; margin-inline: auto; padding-inline: 16px; padding-block: 20px 40px; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 0.9rem; margin: 2px 0 0; }
+.actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.stamp { color: var(--muted); font-size: 0.8rem; font-family: var(--font-num); }
+button { font: inherit; font-weight: 500; font-size: 0.9rem; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); padding: 7px 14px; border-radius: 6px; cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); }
+button.small { padding: 3px 9px; font-size: 0.78rem; }
+button.danger { background: transparent; color: var(--crit); border-color: var(--line); }
+button.danger.armed { background: var(--crit); color: #fff; border-color: var(--crit); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.kpi .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.kpi .val { font-family: var(--font-num); font-size: 1.35rem; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .note { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.val.good { color: var(--good); } .val.crit { color: var(--crit); }
+
+section.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+section.panel > h2 { margin: 0 0 10px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+section.panel > h2 a { font-size: 0.78rem; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+
+ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+ul.list li { padding-block: 9px; border-top: 1px solid var(--line); min-width: 0; }
+ul.list li:first-child { border-top: 0; padding-top: 0; }
+.row { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; min-width: 0; }
+.row > .main { min-width: 0; flex: 1; }
+.t { font-weight: 500; overflow-wrap: anywhere; }
+.m { color: var(--muted); font-size: 0.82rem; overflow-wrap: anywhere; }
+.when { font-family: var(--font-num); font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+
+.alert { border-left: 4px solid var(--line); padding: 8px 12px; border-radius: 4px; background: var(--info-bg); }
+.alert.crit { border-left-color: var(--crit); background: var(--crit-bg); }
+.alert.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.alert.ok { border-left-color: var(--good); background: var(--good-bg); }
+ul.alerts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+.crit .tag { color: var(--crit); } .warn .tag { color: var(--warn); } .ok .tag { color: var(--good); }
+
+.chip { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--info-bg); color: var(--accent); white-space: nowrap; }
+.chip.crit { background: var(--crit-bg); color: var(--crit); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+.chip.good { background: var(--good-bg); color: var(--good); }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.num, th.num { text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.date { font-family: var(--font-num); white-space: nowrap; font-size: 0.82rem; }
+td.acts { white-space: nowrap; text-align: right; }
+td.acts button + button { margin-left: 6px; }
+
+form.add { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; }
+input, select { font: inherit; font-size: 0.92rem; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; min-width: 0; max-width: 100%; }
+input.amt { width: 7.5rem; font-family: var(--font-num); text-align: right; }
+input.in-table { width: 6.8rem; }
+.fmsg { font-size: 0.82rem; color: var(--muted); }
+.fmsg.err { color: var(--crit); }
+
+.state { color: var(--muted); font-size: 0.9rem; }
+.state.err { color: var(--crit); }
+.skeleton { color: var(--muted); font-size: 0.9rem; }
+.help { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+.total { font-family: var(--font-num); font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) { .kpi, section.panel { transition: border-color 0.2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Panel DALP</h1>
+      <p class="sub" id="today"></p>
+    </div>
+    <div class="actions">
+      <span class="stamp" id="stamp">Cargando…</span>
+      <button id="refresh" type="button">Actualizar</button>
+    </div>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section class="panel" aria-labelledby="h-alerts">
+    <h2 id="h-alerts">Alertas</h2>
+    <div id="alerts"><div class="skeleton">Revisando pagos, correo y agenda…</div></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-money">
+    <h2 id="h-money">Dinero disponible ahora</h2>
+    <div id="accts"><div class="skeleton">Cargando…</div></div>
+    <form class="add" id="acct-form" autocomplete="off">
+      <div class="field"><label for="f-acct-name">Nombre</label><input id="f-acct-name" type="text" placeholder="Visa, cuenta N26…" required></div>
+      <div class="field"><label for="f-acct-type">Tipo</label>
+        <select id="f-acct-type"><option value="cuenta">Cuenta</option><option value="tarjeta">Tarjeta de crédito</option></select></div>
+      <div class="field"><label for="f-acct-amt">Disponible (€)</label><input id="f-acct-amt" class="amt" type="text" inputmode="decimal" placeholder="0,00" required></div>
+      <button type="submit" id="acct-add">Añadir</button>
+      <span class="fmsg" id="acct-msg" role="status"></span>
+    </form>
+    <div class="help">En las tarjetas de crédito anota lo que puedes gastar ahora. El total se suma al saldo de las cuentas.</div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-fin">
+    <h2 id="h-fin">Movimientos</h2>
+    <div id="fin"><div class="skeleton">Cargando…</div></div>
+    <form class="add" id="mov-form" autocomplete="off">
+      <div class="field"><label for="f-mov-type">Tipo</label>
+        <select id="f-mov-type"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select></div>
+      <div class="field"><label for="f-mov-name">Concepto</label><input id="f-mov-name" type="text" placeholder="Alquiler, cliente ARX…" required></div>
+      <div class="field"><label for="f-mov-amt">Importe (€)</label><input id="f-mov-amt" class="amt" type="text" inputmode="decimal" placeholder="0,00" required></div>
+      <div class="field"><label for="f-mov-date">Fecha</label><input id="f-mov-date" type="date" required></div>
+      <div class="field"><label for="f-mov-state">Estado</label>
+        <select id="f-mov-state"><option value="1">Ya pagado o cobrado</option><option value="0">Pendiente</option></select></div>
+      <button type="submit" id="mov-add">Añadir</button>
+      <span class="fmsg" id="mov-msg" role="status"></span>
+    </form>
+  </section>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="h-cal">
+      <h2 id="h-cal">Agenda, próximos 7 días <a href="https://calendar.google.com/" target="_blank" rel="noopener">Abrir</a></h2>
+      <div id="cal"><div class="skeleton">Cargando…</div></div>
+    </section>
+    <section class="panel" aria-labelledby="h-mail">
+      <h2 id="h-mail">Correo sin leer <a href="https://mail.google.com/" target="_blank" rel="noopener">Abrir</a></h2>
+      <div id="mail"><div class="skeleton">Cargando…</div></div>
+    </section>
+    <section class="panel" aria-labelledby="h-drive">
+      <h2 id="h-drive">Drive, archivos recientes <a href="https://drive.google.com/" target="_blank" rel="noopener">Abrir</a></h2>
+      <div id="drive"><div class="skeleton">Cargando…</div></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var TZ = "Europe/Madrid";
+  var money = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
+  var $ = function (id) { return document.getElementById(id); };
+
+  function h(tag, attrs) {
+    var e = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (k) {
+      if (k === "class") e.className = attrs[k];
+      else if (k === "href") { e.href = attrs[k]; e.target = "_blank"; e.rel = "noopener"; }
+      else e.setAttribute(k, attrs[k]);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var c = arguments[i];
+      if (c == null || c === false) continue;
+      e.append(c.nodeType ? c : document.createTextNode(String(c)));
+    }
+    return e;
+  }
+  function put(id, node) { var t = $(id); t.replaceChildren(); t.append(node); }
+
+  var state = { accts: null, movs: null, mail: null, cal: null, drive: null, err: {}, stamp: null, dbOff: false };
+  var mcp = null, db = null;
+
+  /* ---------- utilidades ---------- */
+  function startOfToday() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isoDay(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseDate(s) {
+    s = String(s || "").trim();
+    var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    return null;
+  }
+  function parseAmount(s) {
+    s = String(s || "").replace(/[€\s]/g, "");
+    if (!s) return NaN;
+    if (s.indexOf(",") > -1 && s.indexOf(".") > -1) s = s.replace(/\./g, "").replace(",", ".");
+    else if (s.indexOf(",") > -1) s = s.replace(",", ".");
+    return parseFloat(s);
+  }
+  function dayDiff(d) { return Math.round((d - startOfToday()) / 86400000); }
+  function shortDate(d) { return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }); }
+  function relDay(d) {
+    var n = dayDiff(d);
+    if (n === 0) return "hoy"; if (n === 1) return "mañana"; if (n === -1) return "ayer";
+    if (n < 0) return "hace " + (-n) + " días";
+    return "en " + n + " días";
+  }
+  function timeOf(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+  }
+  function errText(server, e) {
+    var code = e && e.code;
+    if (code === "server_not_connected") return "Conecta " + server + " en Ajustes → Conectores de Claude.";
+    if (code === "needs_reauth") return "Vuelve a conectar " + server + " en Ajustes → Conectores.";
+    if (code === "not_in_manifest" || code === "consent_required") return "No has permitido " + server + " para este panel. Pulsa Actualizar para volver a pedirlo.";
+    if (code === "blocked_by_policy" || code === "approval_required") return "Tu organización bloquea " + server + " en este panel.";
+    if (code === "server_unavailable") return server + " no responde ahora mismo. Inténtalo de nuevo en un minuto.";
+    if (code === "tool_error") return server + " devolvió un error: " + (e.message || "sin detalle");
+    return "No se pudo leer " + server + " (" + (code || "error") + ").";
+  }
+  function dbErr(e) {
+    var c = e && e.code;
+    if (c === "invalid_argument") return "No tienes permiso para guardar aquí.";
+    if (c === "quota_exceeded") return "La base de datos está llena.";
+    if (c === "revoked") return "Se retiró el acceso a este panel.";
+    return "No se pudo guardar. Inténtalo de nuevo.";
+  }
+  function unwrap(res) { return res && res.payload !== undefined ? res.payload : res; }
+
+  /* ---------- datos de Google (conectores) ---------- */
+  function loadMail() {
+    return mcp.callTool("Gmail", "search_threads", { query: "is:unread newer_than:7d in:inbox", pageSize: 15 }, { cache: false })
+      .then(function (res) {
+        var p = unwrap(res) || {};
+        state.mail = (p.threads || []).map(function (t) {
+          var m = (t.messages && t.messages[0]) || {};
+          var sender = String(m.sender || "").replace(/<.*>/, "").replace(/"/g, "").trim() || String(m.sender || "");
+          return { subject: m.subject || "(sin asunto)", sender: sender, date: m.date ? new Date(m.date) : null, snippet: m.snippet || "", url: t.viewUrl || m.viewUrl };
+        });
+        delete state.err.mail;
+      })
+      .catch(function (e) { state.err.mail = errText("Gmail", e); });
+  }
+  function loadCal() {
+    var now = new Date(), end = new Date(now.getTime() + 7 * 86400000);
+    return mcp.callTool("Google Calendar", "list_events", { startTime: now.toISOString(), endTime: end.toISOString(), orderBy: "startTime", pageSize: 15, timeZone: TZ }, { cache: false })
+      .then(function (res) {
+        var p = unwrap(res) || {};
+        var list = p.events || p.items || [];
+        state.cal = list.map(function (ev) {
+          var s = (ev.start && (ev.start.dateTime || ev.start.date)) || ev.startTime || ev.start || "";
+          if (typeof s !== "string") s = "";
+          return { title: ev.summary || ev.title || "(Sin título)", start: s, allDay: s.length === 10, where: ev.location || "", url: ev.htmlLink || ev.viewUrl };
+        }).filter(function (e) { return e.start; });
+        delete state.err.cal;
+      })
+      .catch(function (e) { state.err.cal = errText("Google Calendar", e); });
+  }
+  function loadDrive() {
+    return mcp.callTool("Google Drive", "list_recent_files", { pageSize: 6, orderBy: "lastModified", excludeContentSnippets: true }, { cache: false })
+      .then(function (res) {
+        var p = unwrap(res) || {};
+        state.drive = (p.files || []).map(function (f) {
+          return { title: f.title || f.name || "(sin título)", url: f.viewUrl, modified: f.modifiedTime ? new Date(f.modifiedTime) : null, kind: String(f.mimeType || "").split(".").pop().replace("spreadsheet", "Hoja").replace("document", "Doc").replace("presentation", "Presentación").replace("folder", "Carpeta") };
+        });
+        delete state.err.drive;
+      })
+      .catch(function (e) { state.err.drive = errText("Google Drive", e); });
+  }
+
+  /* ---------- alertas ---------- */
+  var CRIT_RE = /restring|bloquead|impag|fraud|suspend|segurid|devuelt|rechaz/i;
+  var WARN_RE = /cargo|pago|factura|recibo|vencim|extracto|domicili|renov|suscrip/i;
+
+  function buildAlerts() {
+    var out = [];
+    (state.movs || []).forEach(function (r) {
+      if (r.done || !r.date) return;
+      var n = dayDiff(r.date);
+      var label = r.concepto || "Movimiento";
+      if (r.tipo === "gasto") {
+        if (n < 0) out.push({ lvl: "crit", tag: "Pago vencido", text: label + ", " + money.format(r.amount), meta: "Debía pagarse " + relDay(r.date) });
+        else if (n <= 3) out.push({ lvl: "warn", tag: "Pago próximo", text: label + ", " + money.format(r.amount), meta: "Vence " + relDay(r.date) });
+      } else if (n < 0) {
+        out.push({ lvl: "warn", tag: "Cobro pendiente", text: label + ", " + money.format(r.amount), meta: "Esperado " + relDay(r.date) });
+      }
+    });
+    (state.mail || []).forEach(function (m) {
+      if (CRIT_RE.test(m.subject + " " + m.snippet)) out.push({ lvl: "crit", tag: "Correo importante", text: m.subject, meta: m.sender, url: m.url });
+      else if (WARN_RE.test(m.subject)) out.push({ lvl: "warn", tag: "Correo de pagos", text: m.subject, meta: m.sender, url: m.url });
+    });
+    (state.cal || []).forEach(function (e) {
+      var d = parseDate(e.start);
+      if (!d) return;
+      var n = dayDiff(d);
+      if (n === 0 || n === 1) out.push({ lvl: "info", tag: n === 0 ? "Hoy en agenda" : "Mañana en agenda", text: e.title, meta: e.allDay ? "Todo el día" : timeOf(e.start) });
+    });
+    var rank = { crit: 0, warn: 1, info: 2 };
+    out.sort(function (a, b) { return rank[a.lvl] - rank[b.lvl]; });
+    return out;
+  }
+
+  /* ---------- render ---------- */
+  function renderKpis() {
+    var cells;
+    if (!state.movs && !state.accts) {
+      cells = [["Disponible ahora", "—", ""], ["Ingresos del mes", "—", ""], ["Gastos del mes", "—", ""], ["Por pagar, 30 días", "—", ""], ["Por cobrar", "—", ""], ["Previsto a 30 días", "—", ""]];
+    } else {
+      var now = new Date(), ym = now.getFullYear() * 12 + now.getMonth();
+      var avail = 0, nAcc = (state.accts || []).length;
+      (state.accts || []).forEach(function (a) { avail += a.importe; });
+      var inc = 0, exp = 0, due = 0, dueN = 0, rec = 0, recN = 0, rec30 = 0;
+      (state.movs || []).forEach(function (r) {
+        if (!r.date) return;
+        var inMonth = (r.date.getFullYear() * 12 + r.date.getMonth()) === ym;
+        if (r.done && inMonth) { if (r.tipo === "ingreso") inc += r.amount; else exp += r.amount; }
+        if (!r.done) {
+          var n = dayDiff(r.date);
+          if (r.tipo === "gasto" && n <= 30) { due += r.amount; dueN++; }
+          if (r.tipo === "ingreso") { rec += r.amount; recN++; if (n <= 30) rec30 += r.amount; }
+        }
+      });
+      var prev = avail - due + rec30;
+      cells = [
+        ["Disponible ahora", money.format(avail), nAcc ? nAcc + (nAcc === 1 ? " cuenta o tarjeta" : " cuentas y tarjetas") : "Añade tus cuentas más abajo", avail < 0 ? "crit" : ""],
+        ["Ingresos del mes", money.format(inc), "cobrados", "good"],
+        ["Gastos del mes", money.format(exp), "pagados", ""],
+        ["Por pagar, 30 días", money.format(due), dueN + (dueN === 1 ? " pago" : " pagos"), ""],
+        ["Por cobrar", money.format(rec), recN + (recN === 1 ? " cobro" : " cobros"), ""],
+        ["Previsto a 30 días", money.format(prev), "disponible − por pagar + cobros", prev < 0 ? "crit" : ""]
+      ];
+    }
+    var wrap = $("kpis"); wrap.replaceChildren();
+    cells.forEach(function (c) {
+      wrap.append(h("div", { class: "kpi" }, h("div", { class: "label" }, c[0]), h("div", { class: "val " + (c[3] || "") }, c[1]), h("div", { class: "note" }, c[2] || " ")));
+    });
+  }
+
+  function renderAlerts() {
+    var items = buildAlerts();
+    if (!state.movs && !state.mail && !state.cal) { put("alerts", h("div", { class: "state" }, "Sin datos todavía.")); return; }
+    if (!items.length) { put("alerts", h("div", { class: "alert ok" }, h("span", { class: "tag" }, "Todo en orden"), h("div", { class: "m" }, "No hay pagos vencidos ni correos urgentes."))); return; }
+    var ul = h("ul", { class: "alerts" });
+    items.slice(0, 10).forEach(function (a) {
+      var title = a.url ? h("a", { href: a.url }, a.text) : a.text;
+      ul.append(h("li", { class: "alert " + a.lvl }, h("span", { class: "tag" }, a.tag), h("div", { class: "t" }, title), h("div", { class: "m" }, a.meta)));
+    });
+    put("alerts", ul);
+  }
+
+  function armedDelete(btn, action) {
+    btn.addEventListener("click", function () {
+      if (btn.dataset.armed === "1") { action(); return; }
+      btn.dataset.armed = "1"; btn.classList.add("armed"); btn.textContent = "¿Seguro?";
+      setTimeout(function () { if (btn.isConnected) { btn.dataset.armed = ""; btn.classList.remove("armed"); btn.textContent = "Borrar"; } }, 3000);
+    });
+  }
+
+  function renderAccts() {
+    if (state.dbOff) return put("accts", h("div", { class: "state err" }, "Aquí no se puede guardar. Abre el panel desde Claude con tu sesión iniciada."));
+    if (!state.accts) return;
+    if (!state.accts.length) return put("accts", h("div", { class: "state" }, "Aún no has anotado nada. Añade cada cuenta o tarjeta con lo que tienes disponible."));
+    var tb = h("tbody"), total = 0;
+    state.accts.forEach(function (a) {
+      total += a.importe;
+      var inp = h("input", { class: "amt in-table", type: "text", inputmode: "decimal", value: String(a.importe).replace(".", ","), "aria-label": "Disponible en " + a.nombre });
+      inp.addEventListener("change", function () {
+        var v = parseAmount(inp.value);
+        if (isNaN(v)) { inp.value = String(a.importe).replace(".", ","); return; }
+        saveDoc(db.doc("cuentas/" + a.id).update({ importe: v }), "acct-msg");
+      });
+      var del = h("button", { type: "button", class: "small danger" }, "Borrar");
+      armedDelete(del, function () { saveDoc(db.doc("cuentas/" + a.id).delete(), "acct-msg"); });
+      tb.append(h("tr", null,
+        h("td", null, h("div", { class: "t" }, a.nombre)),
+        h("td", null, h("span", { class: "chip" }, a.tipo === "tarjeta" ? "Tarjeta de crédito" : "Cuenta")),
+        h("td", { class: "num" }, inp),
+        h("td", { class: "acts" }, del)));
+    });
+    var foot = h("tfoot", null, h("tr", null, h("td", { colspan: "2" }, h("strong", null, "Total disponible")), h("td", { class: "num" }, h("span", { class: "total" }, money.format(total))), h("td")));
+    put("accts", h("div", { class: "tablewrap" }, h("table", null,
+      h("thead", null, h("tr", null, h("th", null, "Nombre"), h("th", null, "Tipo"), h("th", { class: "num" }, "Disponible"), h("th"))), tb, foot)));
+  }
+
+  function renderFin() {
+    if (state.dbOff) return put("fin", h("div", { class: "state err" }, "Aquí no se puede guardar. Abre el panel desde Claude con tu sesión iniciada."));
+    if (!state.movs) return;
+    var now = new Date(), ym = now.getFullYear() * 12 + now.getMonth();
+    var monthName = now.toLocaleDateString("es-ES", { month: "long" });
+    var rows = state.movs.filter(function (r) {
+      if (!r.date) return false;
+      return !r.done || (r.date.getFullYear() * 12 + r.date.getMonth()) === ym;
+    }).sort(function (a, b) { return a.date - b.date; });
+    if (!rows.length) {
+      return put("fin", h("div", { class: "state" }, "Sin movimientos. Anota abajo un gasto o ingreso. Si ya lo pagaste, elige \"Ya pagado o cobrado\" y saldrá en los gastos de " + monthName + "."));
+    }
+    var tb = h("tbody");
+    rows.forEach(function (r) {
+      var n = dayDiff(r.date), chip;
+      if (r.done) chip = h("span", { class: "chip good" }, r.tipo === "gasto" ? "Pagado" : "Cobrado");
+      else if (r.tipo === "gasto") chip = n < 0 ? h("span", { class: "chip crit" }, "Vencido") : n <= 3 ? h("span", { class: "chip warn" }, "Próximo") : h("span", { class: "chip" }, "Por pagar");
+      else chip = n < 0 ? h("span", { class: "chip warn" }, "Cobro atrasado") : h("span", { class: "chip" }, "Por cobrar");
+      var toggle = h("button", { type: "button", class: "small ghost" }, r.done ? "Marcar pendiente" : (r.tipo === "gasto" ? "Marcar pagado" : "Marcar cobrado"));
+      toggle.addEventListener("click", function () { saveDoc(db.doc("movimientos/" + r.id).update({ pagado: !r.done }), "mov-msg"); });
+      var del = h("button", { type: "button", class: "small danger" }, "Borrar");
+      armedDelete(del, function () { saveDoc(db.doc("movimientos/" + r.id).delete(), "mov-msg"); });
+      tb.append(h("tr", null,
+        h("td", { class: "date" }, shortDate(r.date) + (r.done ? "" : " · " + relDay(r.date))),
+        h("td", null, h("div", { class: "t" }, r.concepto || "(sin concepto)")),
+        h("td", null, chip),
+        h("td", { class: "num" }, (r.tipo === "gasto" ? "−" : "+") + money.format(r.amount)),
+        h("td", { class: "acts" }, toggle, del)));
+    });
+    put("fin", h("div", { class: "tablewrap" }, h("table", null,
+      h("thead", null, h("tr", null, h("th", null, "Fecha"), h("th", null, "Concepto"), h("th", null, "Estado"), h("th", { class: "num" }, "Importe"), h("th"))), tb)));
+  }
+
+  function renderCal() {
+    if (state.err.cal) return put("cal", h("div", { class: "state err" }, state.err.cal));
+    if (!state.cal) return;
+    if (!state.cal.length) return put("cal", h("div", { class: "state" }, "No tienes eventos en los próximos 7 días."));
+    var ul = h("ul", { class: "list" });
+    state.cal.slice(0, 8).forEach(function (e) {
+      var d = parseDate(e.start);
+      var when = (d ? shortDate(d) : "") + (e.allDay ? "" : " · " + timeOf(e.start));
+      var title = e.url ? h("a", { href: e.url }, e.title) : e.title;
+      ul.append(h("li", null, h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t" }, title), e.where ? h("div", { class: "m" }, e.where) : null), h("div", { class: "when" }, when))));
+    });
+    put("cal", ul);
+  }
+  function renderMail() {
+    if (state.err.mail) return put("mail", h("div", { class: "state err" }, state.err.mail));
+    if (!state.mail) return;
+    if (!state.mail.length) return put("mail", h("div", { class: "state" }, "Bandeja al día: no hay correo sin leer de la última semana."));
+    var ul = h("ul", { class: "list" });
+    state.mail.slice(0, 8).forEach(function (m) {
+      var title = m.url ? h("a", { href: m.url }, m.subject) : m.subject;
+      ul.append(h("li", null, h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t" }, title), h("div", { class: "m" }, m.sender)), h("div", { class: "when" }, m.date && !isNaN(m.date) ? shortDate(m.date) : ""))));
+    });
+    put("mail", ul);
+  }
+  function renderDrive() {
+    if (state.err.drive) return put("drive", h("div", { class: "state err" }, state.err.drive));
+    if (!state.drive) return;
+    if (!state.drive.length) return put("drive", h("div", { class: "state" }, "No hay archivos recientes."));
+    var ul = h("ul", { class: "list" });
+    state.drive.forEach(function (f) {
+      var title = f.url ? h("a", { href: f.url }, f.title) : f.title;
+      ul.append(h("li", null, h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t" }, title), h("div", { class: "m" }, f.kind)), h("div", { class: "when" }, f.modified && !isNaN(f.modified) ? shortDate(f.modified) : ""))));
+    });
+    put("drive", ul);
+  }
+
+  function renderAll() {
+    renderKpis(); renderAlerts(); renderAccts(); renderFin(); renderCal(); renderMail(); renderDrive();
+    $("stamp").textContent = state.stamp ? "Actualizado " + state.stamp.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: TZ }) : "Cargando…";
+  }
+
+  /* ---------- guardado ---------- */
+  function say(id, text, bad) { var m = $(id); m.textContent = text; m.className = "fmsg" + (bad ? " err" : ""); }
+  function saveDoc(promise, msgId) {
+    return promise.then(function () { say(msgId, ""); }).catch(function (e) { say(msgId, dbErr(e), true); });
+  }
+  function disableForms() {
+    ["acct-form", "mov-form"].forEach(function (id) {
+      Array.prototype.forEach.call($(id).elements, function (el) { el.disabled = true; });
+    });
+  }
+
+  $("acct-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!db) return;
+    var name = $("f-acct-name").value.trim(), amt = parseAmount($("f-acct-amt").value);
+    if (!name || isNaN(amt)) return say("acct-msg", "Escribe un nombre y un importe válido.", true);
+    $("acct-add").disabled = true;
+    db.collection("cuentas").add({ nombre: name, tipo: $("f-acct-type").value, importe: amt }).then(function () {
+      $("f-acct-name").value = ""; $("f-acct-amt").value = ""; say("acct-msg", "");
+    }).catch(function (e) { say("acct-msg", dbErr(e), true); }).then(function () { $("acct-add").disabled = false; });
+  });
+
+  $("mov-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!db) return;
+    var name = $("f-mov-name").value.trim(), amt = parseAmount($("f-mov-amt").value), date = $("f-mov-date").value;
+    if (!name || isNaN(amt) || !date) return say("mov-msg", "Completa concepto, importe y fecha.", true);
+    $("mov-add").disabled = true;
+    db.collection("movimientos").add({ tipo: $("f-mov-type").value, concepto: name, importe: Math.abs(amt), fecha: date, pagado: $("f-mov-state").value === "1" }).then(function () {
+      $("f-mov-name").value = ""; $("f-mov-amt").value = ""; say("mov-msg", "");
+    }).catch(function (e) { say("mov-msg", dbErr(e), true); }).then(function () { $("mov-add").disabled = false; });
+  });
+
+  function subscribe() {
+    db.collection("cuentas").onSnapshot(function (snap) {
+      state.accts = snap.docs.map(function (d) {
+        var x = d.data() || {};
+        return { id: d.id, nombre: String(x.nombre || "Sin nombre"), tipo: x.tipo === "tarjeta" ? "tarjeta" : "cuenta", importe: Number(x.importe) || 0 };
+      });
+      renderKpis(); renderAccts();
+    }, function () { state.dbOff = true; disableForms(); renderAccts(); renderFin(); });
+    db.collection("movimientos").onSnapshot(function (snap) {
+      state.movs = snap.docs.map(function (d) {
+        var x = d.data() || {};
+        return { id: d.id, tipo: x.tipo === "ingreso" ? "ingreso" : "gasto", concepto: String(x.concepto || ""), amount: Math.abs(Number(x.importe) || 0), date: parseDate(x.fecha), done: x.pagado === true };
+      });
+      renderKpis(); renderAlerts(); renderFin();
+    }, function () { state.dbOff = true; disableForms(); renderAccts(); renderFin(); });
+  }
+
+  /* ---------- arranque ---------- */
+  function refresh() {
+    if (!mcp) return;
+    var btn = $("refresh");
+    btn.disabled = true; btn.textContent = "Actualizando…";
+    Promise.all([loadMail(), loadCal(), loadDrive()]).then(function () {
+      state.stamp = new Date();
+      renderAll();
+      btn.disabled = false; btn.textContent = "Actualizar";
+    });
+  }
+  function noMcp() {
+    var msg = h("div", { class: "state err" }, "Este panel necesita acceso a tus conectores. Ábrelo desde Claude con la sesión iniciada.");
+    ["cal", "mail", "drive"].forEach(function (id) { put(id, msg.cloneNode(true)); });
+    $("refresh").disabled = true;
+    $("stamp").textContent = "Sin conexión a conectores";
+  }
+  function noDb() {
+    state.dbOff = true; disableForms(); renderAccts(); renderFin();
+    put("alerts", h("div", { class: "state" }, "Las alertas de pagos necesitan poder guardar datos. Abre el panel desde Claude."));
+  }
+
+  $("today").textContent = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: TZ });
+  $("f-mov-date").value = isoDay(new Date());
+  $("refresh").addEventListener("click", refresh);
+  renderKpis();
+
+  if (window.claude && window.claude.use) {
+    window.claude.use("db").then(function (d) {
+      if (!d) return noDb();
+      db = d; subscribe();
+    }).catch(noDb);
+    window.claude.use("mcp").then(function (m) {
+      if (!m) return noMcp();
+      mcp = m;
+      refresh();
+      setInterval(function () { if (!document.hidden) refresh(); }, 10 * 60 * 1000);
+    }).catch(noMcp);
+  } else {
+    noMcp(); noDb();
+  }
+})();
+</script>
+
+</body></html>
